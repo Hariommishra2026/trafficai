@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>TrafficPulse AI</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
+
+body{
+background:linear-gradient(135deg,#08111f,#0f172a,#0b1220);
+min-height:100vh;
+color:white;
+overflow-x:hidden;
+}
+
+body::before{
+content:'';
+position:fixed;
+width:200%;
+height:200%;
+background:
+radial-gradient(circle at 20% 20%,rgba(94,234,212,.1),transparent 30%),
+radial-gradient(circle at 80% 30%,rgba(34,211,238,.1),transparent 30%),
+radial-gradient(circle at 40% 80%,rgba(139,92,246,.1),transparent 30%);
+animation:rotateBg 25s linear infinite;
+z-index:-1;
+}
+
+@keyframes rotateBg{
+from{transform:rotate(0deg);}
+to{transform:rotate(360deg);}
+}
+
+header{
+padding:50px 20px;
+text-align:center;
+}
+
+header h1{
+font-size:3rem;
+color:#5eead4;
+}
+
+header p{
+color:#cbd5e1;
+margin-top:10px;
+}
+
+.hero{
+max-width:800px;
+margin:auto;
+text-align:center;
+padding:20px;
+}
+
+.hero h2{
+font-size:2rem;
+margin-bottom:15px;
+}
+
+.hero p{
+color:#94a3b8;
+line-height:1.8;
+}
+
+.button{
+padding:15px 35px;
+margin-top:25px;
+border:none;
+border-radius:50px;
+background:linear-gradient(135deg,#14b8a6,#22d3ee);
+color:white;
+font-size:16px;
+cursor:pointer;
+font-weight:bold;
+transition:.3s;
+}
+
+.button:hover{
+transform:translateY(-3px);
+box-shadow:0 10px 25px rgba(34,211,238,.4);
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:20px;
+margin-top:40px;
+}
+
+.card{
+background:rgba(255,255,255,.05);
+backdrop-filter:blur(20px);
+border:1px solid rgba(255,255,255,.08);
+padding:20px;
+border-radius:20px;
+}
+
+.card h3{
+color:#5eead4;
+margin-bottom:10px;
+}
+
+.value{
+font-size:1.4rem;
+font-weight:bold;
+}
+
+#map{
+height:450px;
+margin-top:30px;
+border-radius:25px;
+overflow:hidden;
+}
+
+.help-section{
+margin-top:40px;
+padding:30px;
+background:rgba(255,255,255,.05);
+backdrop-filter:blur(15px);
+border-radius:25px;
+}
+
+.help-section h2{
+color:#5eead4;
+}
+
+.help-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+gap:15px;
+margin-top:20px;
+}
+
+.help-btn{
+border:none;
+padding:16px;
+border-radius:15px;
+background:#132238;
+color:white;
+cursor:pointer;
+font-weight:bold;
+transition:.3s;
+}
+
+.help-btn:hover{
+background:#1d3557;
+transform:translateY(-4px);
+}
+
+#results{
+margin-top:20px;
+padding:20px;
+border-radius:15px;
+background:#0f172a;
+line-height:1.8;
+}
+
+.quote{
+margin-top:30px;
+padding:30px;
+background:rgba(255,255,255,.05);
+backdrop-filter:blur(15px);
+border-radius:25px;
+text-align:center;
+}
+
+.quote h2{
+color:#5eead4;
+margin-bottom:15px;
+}
+
+.quote p{
+font-size:1.1rem;
+line-height:2;
+color:#d1d5db;
+}
+
+footer{
+text-align:center;
+padding:35px;
+color:#94a3b8;
+}
+
+.particle{
+position:fixed;
+width:4px;
+height:4px;
+background:#5eead4;
+border-radius:50%;
+opacity:.3;
+animation:rise linear infinite;
+}
+
+@keyframes rise{
+from{
+transform:translateY(100vh);
+}
+to{
+transform:translateY(-100px);
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+<h1>🚦 TrafficPulse AI</h1>
+
+<p>Know the road ahead before it slows you down</p>
+
+</header>
+
+<section class="hero">
+
+<h2>Real-Time Traffic Awareness</h2>
+
+<p>
+Track your current location, discover nearby services,
+and prepare for smarter journeys.
+</p>
+
+<button class="button" onclick="getLocation()">
+📍 Detect My Location
+</button>
+
+</section>
+
+<div class="container">
+
+<div class="cards">
+
+<div class="card">
+<h3>Latitude</h3>
+<div id="lat" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>Longitude</h3>
+<div id="lon" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>Nearby Vehicles</h3>
+<div id="vehicles" class="value">API Pending</div>
+</div>
+
+<div class="card">
+<h3>Traffic Clear ETA</h3>
+<div id="eta" class="value">API Pending</div>
+</div>
+
+</div>
+
+<div id="map"></div>
+
+<section class="help-section">
+
+<h2>🧭 Help Me Nearby</h2>
+
+<p style="margin-top:10px;color:#cbd5e1;">
+Find nearby places using your live GPS location.
+</p>
+
+<div class="help-grid">
+
+<button class="help-btn" onclick="findPlace('🚌 Nearby Bus Stops')">
+🚌 Bus Stops
+</button>
+
+<button class="help-btn" onclick="findPlace('🚆 Nearby Railway Stations')">
+🚆 Railway
+</button>
+
+<button class="help-btn" onclick="findPlace('🏥 Nearby Hospitals')">
+🏥 Hospital
+</button>
+
+<button class="help-btn" onclick="findPlace('🚓 Nearby Police Stations')">
+🚓 Police
+</button>
+
+<button class="help-btn" onclick="findPlace('⛽ Nearby Petrol Pumps')">
+⛽ Petrol
+</button>
+
+<button class="help-btn" onclick="findPlace('🍴 Nearby Restaurants')">
+🍴 Food
+</button>
+
+</div>
+
+<div id="results">
+
+<h3>📍 Waiting for your request...</h3>
+
+</div>
+
+</section>
+
+<div class="quote">
+
+<h2>❤️ Road Safety Reminder</h2>
+
+<p>
+
+Have patience.
+
+<br><br>
+
+Time is important,
+
+but being alive is more important.
+
+<br><br>
+
+The next train can be boarded.
+
+<br>
+
+The next bus can be caught.
+
+<br>
+
+The next meeting can be rescheduled.
+
+<br><br>
+
+Your loved ones are waiting at home.
+
+<br><br>
+
+Arrive late if you must.
+
+<br>
+
+Just arrive safely.
+
+</p>
+
+</div>
+
+</div>
+
+<footer>
+
+TrafficPulse AI • Smarter Roads • Safer Journeys
+
+<br><br>
+
+Created by tech.hariom7
+
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+let map;
+
+function getLocation(){
+
+if(!navigator.geolocation){
+alert("Geolocation not supported");
+return;
+}
+
+navigator.geolocation.getCurrentPosition(
+
+(position)=>{
+
+const lat=position.coords.latitude;
+const lon=position.coords.longitude;
+
+document.getElementById("lat").innerText=lat.toFixed(6);
+document.getElementById("lon").innerText=lon.toFixed(6);
+
+if(map){
+map.remove();
+}
+
+map=L.map('map').setView([lat,lon],15);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+attribution:'© OpenStreetMap'
+}
+).addTo(map);
+
+L.marker([lat,lon])
+.addTo(map)
+.bindPopup("📍 You Are Here")
+.openPopup();
+
+document.getElementById("vehicles").innerText="Waiting API";
+document.getElementById("eta").innerText="Waiting API";
+
+},
+
+()=>{
+alert("Location access denied");
+}
+);
+
+}
+
+function findPlace(type){
+
+const results=document.getElementById("results");
+
+results.innerHTML="📍 Detecting location...";
+
+navigator.geolocation.getCurrentPosition(
+
+(position)=>{
+
+const lat=position.coords.latitude;
+const lon=position.coords.longitude;
+
+results.innerHTML=`
+
+<h3>${type}</h3>
+
+<p><strong>Latitude:</strong> ${lat.toFixed(6)}</p>
+
+<p><strong>Longitude:</strong> ${lon.toFixed(6)}</p>
+
+<br>
+
+<p>
+✅ GPS captured successfully.
+</p>
+
+<p>
+When APIs are connected, actual nearby locations
+will appear here automatically.
+</p>
+
+<ul>
+<li>Location 1 - 500m away</li>
+<li>Location 2 - 1.1 km away</li>
+<li>Location 3 - 2.0 km away</li>
+</ul>
+
+`;
+
+},
+
+()=>{
+
+results.innerHTML="❌ Please allow GPS access.";
+
+});
+
+}
+
+for(let i=0;i<30;i++){
+
+let p=document.createElement("div");
+
+p.className="particle";
+
+p.style.left=Math.random()*100+"vw";
+
+p.style.animationDuration=(6+Math.random()*10)+"s";
+
+p.style.animationDelay=Math.random()*5+"s";
+
+document.body.appendChild(p);
+
+}
+
+</script>
+
+</body>
+</html>
